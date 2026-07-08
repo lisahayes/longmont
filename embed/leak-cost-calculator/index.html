@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leak Cost Calculator | Longmont Leak Repair Pros</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,-apple-system,sans-serif;font-size:15px;background:transparent;padding:1rem;}
+    :root{--p:#0E7490;--a:#334155;--ba:#f1f5f9;--bd:#e2e8f0;--r:8px;}
+    label{display:block;font-weight:600;font-size:.875rem;color:#334155;margin-bottom:.35rem;}
+    select,input[type=number]{width:100%;padding:.6rem .75rem;border:1.5px solid var(--bd);border-radius:var(--r);font-size:.95rem;color:#1e293b;background:#fff;}
+    select:focus,input:focus{outline:2px solid var(--p);border-color:var(--p);}
+    .row{display:flex;gap:.75rem;flex-wrap:wrap;}
+    .row>div{flex:1;min-width:120px;}
+    .field{margin-bottom:1rem;}
+    .presets{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem;}
+    .preset-btn{background:var(--ba);border:1.5px solid var(--bd);border-radius:var(--r);padding:.35rem .75rem;font-size:.8rem;cursor:pointer;color:#334155;font-weight:600;}
+    .preset-btn:hover{background:var(--p);color:#fff;border-color:var(--p);}
+    .calc-btn{background:var(--p);color:#fff;padding:.75rem 1.5rem;border:none;border-radius:var(--r);font-weight:700;font-size:1rem;cursor:pointer;width:100%;margin-top:.5rem;}
+    .calc-btn:hover{background:#0a5c73;}
+    .result{display:none;margin-top:1.25rem;background:var(--ba);border:1.5px solid var(--bd);border-radius:var(--r);padding:1rem;}
+    .stat-row{display:flex;gap:.5rem;margin-bottom:.75rem;text-align:center;}
+    .stat{flex:1;background:#fff;border-radius:var(--r);padding:.6rem .5rem;border:1px solid var(--bd);}
+    .stat-num{font-size:1.4rem;font-weight:800;color:var(--p);display:block;}
+    .stat-lbl{font-size:.7rem;color:#718096;}
+    .cost-hl{font-weight:700;font-size:1rem;color:#0f1f2e;margin-bottom:.35rem;}
+    .note{font-size:.825rem;color:#4a5568;margin-top:.35rem;padding:.5rem;background:#fff;border-radius:var(--r);border:1px solid var(--bd);}
+    .wqa{background:#ecfdf5;border-color:#6ee7b7;color:#065f46;}
+    .footer-link{text-align:center;font-size:.75rem;color:#718096;margin-top:1rem;}
+    .footer-link a{color:var(--p);}
+    .hidden{display:none;}
+  </style>
+</head>
+<body>
+
+<div class="field">
+  <label for="e-type">Leak type</label>
+  <select id="e-type">
+    <option value="drip">Dripping faucet (drips/min)</option>
+    <option value="toilet">Running toilet</option>
+    <option value="trickle">Steady trickle (gal/hr)</option>
+    <option value="irrigation">Irrigation / outdoor leak (gal/hr)</option>
+  </select>
+</div>
+
+<div id="e-drip-wrap" class="field">
+  <label>Drips per minute</label>
+  <div class="presets">
+    <button type="button" class="preset-btn" data-val="10">Slow (10)</button>
+    <button type="button" class="preset-btn" data-val="60">Steady (60)</button>
+    <button type="button" class="preset-btn" data-val="120">Fast (120)</button>
+  </div>
+  <input type="number" id="e-drips" value="60" min="1">
+</div>
+
+<div id="e-toilet-wrap" class="field hidden">
+  <label for="e-toilet-gpd">Gallons per day</label>
+  <input type="number" id="e-toilet-gpd" value="480" min="1">
+</div>
+
+<div id="e-trickle-wrap" class="field hidden">
+  <label for="e-trickle-gph">Gallons per hour</label>
+  <input type="number" id="e-trickle-gph" value="2" min="0.1" step="0.1">
+</div>
+
+<div id="e-irrig-wrap" class="field hidden">
+  <label for="e-irrig-gph">Gallons per hour</label>
+  <input type="number" id="e-irrig-gph" value="60" min="1">
+</div>
+
+<div class="field">
+  <label for="e-count">Number of fixtures</label>
+  <input type="number" id="e-count" value="1" min="1" max="20">
+</div>
+
+<button class="calc-btn" id="e-calc-btn">Calculate Cost</button>
+
+<div class="result" id="e-result">
+  <div class="stat-row">
+    <div class="stat"><span class="stat-num" id="e-gpd"></span><span class="stat-lbl">gal / day</span></div>
+    <div class="stat"><span class="stat-num" id="e-gpm"></span><span class="stat-lbl">gal / month</span></div>
+    <div class="stat"><span class="stat-num" id="e-gpy"></span><span class="stat-lbl">gal / year</span></div>
+  </div>
+  <p class="cost-hl" id="e-main"></p>
+  <p style="font-size:.875rem;color:#4a5568;" id="e-break"></p>
+  <p class="note" id="e-block" style="display:none;"></p>
+  <p class="note wqa" id="e-wqa" style="display:none;">Longmont caps sewer charges at your Winter Quarter Average during irrigation season (March through November). This outdoor leak adds only to the water bill, not wastewater during those months.</p>
+</div>
+
+<p class="footer-link">Powered by <a href="https://longmontleakrepairpros.com" target="_blank" rel="noopener">Longmont Leak Repair Pros</a></p>
+
+<script>
+(function() {
+  function calcWater(lkMo) {
+    var b = 4000, t = b + lkMo, c = 0;
+    c += (Math.max(0, Math.min(t,5000)-Math.min(b,5000))/1000)*4.84;
+    c += (Math.max(0, Math.min(t,15000)-Math.max(Math.min(b,15000),5000))/1000)*7.27;
+    c += (Math.max(0, Math.min(t,35000)-Math.max(Math.min(b,35000),15000))/1000)*9.69;
+    if(t>35000) c += ((t-Math.max(b,35000))/1000)*13.08;
+    return Math.max(0,c);
+  }
+  function fmt(n,d){return n.toFixed(d!==undefined?d:2);}
+
+  var typeEl = document.getElementById("e-type");
+  var wraps = {drip:"e-drip-wrap",toilet:"e-toilet-wrap",trickle:"e-trickle-wrap",irrigation:"e-irrig-wrap"};
+
+  typeEl.addEventListener("change", function() {
+    Object.keys(wraps).forEach(function(k) {
+      document.getElementById(wraps[k]).className = "field" + (k===typeEl.value ? "" : " hidden");
+    });
+  });
+
+  document.querySelectorAll(".preset-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() { document.getElementById("e-drips").value = btn.dataset.val; });
+  });
+
+  document.getElementById("e-calc-btn").addEventListener("click", function() {
+    var t = typeEl.value, cnt = Math.max(1, parseFloat(document.getElementById("e-count").value)||1), gpd = 0;
+    if(t==="drip") { var dpm=parseFloat(document.getElementById("e-drips").value)||60; gpd=(dpm*60*24)/15140; }
+    else if(t==="toilet") { gpd=parseFloat(document.getElementById("e-toilet-gpd").value)||480; }
+    else if(t==="trickle") { gpd=(parseFloat(document.getElementById("e-trickle-gph").value)||2)*24; }
+    else { gpd=(parseFloat(document.getElementById("e-irrig-gph").value)||60)*24; }
+    gpd*=cnt;
+    var gpm=gpd*30.44, gpy=gpd*365;
+    document.getElementById("e-gpd").textContent=fmt(gpd,1);
+    document.getElementById("e-gpm").textContent=fmt(gpm,0);
+    document.getElementById("e-gpy").textContent=fmt(gpy,0);
+    var wc=calcWater(gpm), irrig=(t==="irrigation"), sc=irrig?0:(gpm/1000)*7.82, tot=wc+sc;
+    var mainEl=document.getElementById("e-main"), brkEl=document.getElementById("e-break");
+    if(irrig){ mainEl.textContent="$"+fmt(wc)+"/mo on your water bill (water only). $"+fmt(wc*12)+"/yr."; brkEl.textContent="Wastewater not included: see WQA note."; }
+    else { mainEl.textContent="About $"+fmt(tot)+"/mo and $"+fmt(tot*12)+"/yr on your Longmont bill."; brkEl.textContent="$"+fmt(wc)+" water + $"+fmt(sc)+" wastewater."; }
+    document.getElementById("e-wqa").style.display=irrig?"block":"none";
+    var bk=document.getElementById("e-block");
+    if((4000+gpm)>5000){bk.style.display="block";bk.textContent="Usage may reach Block 2 pricing at $7.27/1,000 gal.";}else{bk.style.display="none";}
+    document.getElementById("e-result").style.display="block";
+  });
+})();
+</script>
+</body>
+</html>
